@@ -1,0 +1,27 @@
+composer parseInventory
+  [<elf_load>+]
+  rule elf_load: <item>+  -> ..=Sum&{of: :()} (<'\n'>?)
+  rule item: <INT"cal"> (<'\n'>?)
+end parseInventory
+
+def inventory: '$IN::lines -> '$;$#10;';' -> parseInventory;
+
+source solutionPart1
+  $inventory ... -> ..=Max&{by: :(), select: :()} !
+end solutionPart1
+
+source solutionPart2
+  @: [-1"cal", -1"cal", -1"cal"];
+  $inventory ... -> #
+  $@... -> ..=Sum&{of: :()} !
+  when <$@(1)..> do @: [$, $@(1), $@(2)];
+  when <$@(2)..> do @: [$@(1), $, $@(2)];
+  when <$@(3)..> do @: [$@(1), $@(2), $];
+end solutionPart2
+
+'$:'part' -> SYS::property;' -> \(
+  when <='part1'|=''> do $solutionPart1 !
+  when <='part2'> do $solutionPart2 !
+  otherwise 'Unknown part $;' !
+\) -> '$;
+' -> !OUT::write
