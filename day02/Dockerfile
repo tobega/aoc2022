@@ -1,5 +1,8 @@
-FROM openjdk:17-alpine
-ADD https://github.com/tobega/tailspin-v0/raw/master/tailspin.jar tailspin.jar
-COPY ./*.tt .
-COPY input.txt .
-CMD java -jar tailspin.jar app.tt < input.txt
+FROM ubuntu
+
+RUN apt-get update
+RUN apt-get install -y gnu-smalltalk
+COPY . /app
+WORKDIR /app
+
+CMD gst /app/main.st
