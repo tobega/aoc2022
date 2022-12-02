@@ -1,26 +1,19 @@
-templates elfCode
-  when <='A'> do 0"elf"!
-  when <='B'> do 1"elf"!
-  when <='C'> do 2"elf"!
-end elfCode
-
-templates youCode
-  when <='X'> do 0"you"!
-  when <='Y'> do 1"you"!
-  when <='Z'> do 2"you"!
-end youCode
+templates indexof&{values:}
+  def code: $;
+  $values -> \[i](when <=$code> do $i!\) -> $(first)!
+end indexof
 
 composer parseStrategy
-  {elf: <'.'> -> elfCode, (<WS>) you: <'.'> -> youCode}
+  {elf: <'.'> -> indexof&{values: 0:['A','B','C']}, (<WS>) you: <'.'> -> indexof&{values: 0:['X','Y','Z']}}
 end parseStrategy
 
 def strategy: [$IN::lines -> parseStrategy];
 
 def shape: 0:[1,2,3];
-def score: 0"diff":[3,6,0];
+def score: 0:[3,6,0];
 
 templates round
-  def diff: ($.you - $.elf)"diff" mod 3;
+  def diff: ($.you::raw - $.elf::raw) mod 3;
   $score($diff) + $shape($.you::raw) !
 end round
 
@@ -28,9 +21,9 @@ source solutionPart1
   $strategy ... -> round -> ..=Sum&{of: :()} !
 end solutionPart1
 
-def resultCode: 0"you":[2, 0, 1];
+def resultCode: you´0:[2, 0, 1];
 templates forceResult
-  {elf: $.elf, you: ($resultCode($.you) + $.elf)"you" mod 3}!
+  {elf: $.elf, you: ($resultCode($.you) + $.elf::raw) mod 3}!
 end forceResult
 
 source solutionPart2
