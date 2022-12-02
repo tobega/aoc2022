@@ -1,0 +1,45 @@
+templates elfCode
+  when <='A'> do 0"elf"!
+  when <='B'> do 1"elf"!
+  when <='C'> do 2"elf"!
+end elfCode
+
+templates youCode
+  when <='X'> do 0"you"!
+  when <='Y'> do 1"you"!
+  when <='Z'> do 2"you"!
+end youCode
+
+composer parseStrategy
+  {elf: <'.'> -> elfCode, (<WS>) you: <'.'> -> youCode}
+end parseStrategy
+
+def strategy: [$IN::lines -> parseStrategy];
+
+def shape: 0:[1,2,3];
+def score: 0"diff":[3,6,0];
+
+templates round
+  def diff: ($.you - $.elf)"diff" mod 3;
+  $score($diff) + $shape($.you::raw) !
+end round
+
+source solutionPart1
+  $strategy ... -> round -> ..=Sum&{of: :()} !
+end solutionPart1
+
+def resultCode: 0"you":[2, 0, 1];
+templates forceResult
+  {elf: $.elf, you: ($resultCode($.you) + $.elf)"you" mod 3}!
+end forceResult
+
+source solutionPart2
+  $strategy ... -> forceResult -> round -> ..=Sum&{of: :()} !
+end solutionPart2
+
+'$:'part' -> SYS::property;' -> \(
+  when <='part1'|=''> do $solutionPart1 !
+  when <='part2'> do $solutionPart2 !
+  otherwise 'Unknown part $;' !
+\) -> '$;
+' -> !OUT::write
