@@ -1,0 +1,27 @@
+composer parseSections
+  {first: <section>, (<=','>) second: <section>}
+  rule section: {start: <INT"s">, (<='-'>) end: <INT"s">}
+end parseSections
+
+def pairs: [$IN::lines -> parseSections];
+
+source solutionPart1
+  $pairs... -> \(when <{first: <{start: <..$.second.start>, end: <$.second.end..>}>}
+    |{first: <{start: <$.second.start..>, end: <..$.second.end>}>}> do $!\)
+    -> ..=Count !
+end solutionPart1
+
+source solutionPart2
+  $pairs... -> \(when <{first: <{start: <$.second.start..$.second.end>}>}
+    |{first: <{end: <$.second.start..$.second.end>}>}
+    |{second: <{start: <$.first.start..$.first.end>}>}
+    |{second: <{end: <$.first.start..$.first.end>}>}> do $!\)
+    -> ..=Count !
+end solutionPart2
+
+'$:'part' -> SYS::property;' -> \(
+  when <='part1'|=''> do $solutionPart1 !
+  when <='part2'> do $solutionPart2 !
+  otherwise 'Unknown part $;' !
+\) -> '$;
+' -> !OUT::write
