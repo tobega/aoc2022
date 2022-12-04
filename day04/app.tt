@@ -1,21 +1,21 @@
 composer parseSections
   {first: <section>, (<=','>) second: <section>}
-  rule section: {start: <INT"s">, (<='-'>) end: <INT"s">}
+  rule section: {start: <section´INT>, (<='-'>) end: <section´INT>}
 end parseSections
 
 def pairs: [$IN::lines -> parseSections];
 
 source solutionPart1
-  $pairs... -> \(when <{first: <{start: <..$.second.start>, end: <$.second.end..>}>}
-    |{first: <{start: <$.second.start..>, end: <..$.second.end>}>}> do $!\)
+  $pairs... -> \(
+    when <{first: <{start: <..$.second.start>, end: <$.second.end..>}>}
+    |     {second: <{start: <..$.first.start>, end: <$.first.end..>}>}> do $!\)
     -> ..=Count !
 end solutionPart1
 
 source solutionPart2
-  $pairs... -> \(when <{first: <{start: <$.second.start..$.second.end>}>}
-    |{first: <{end: <$.second.start..$.second.end>}>}
-    |{second: <{start: <$.first.start..$.first.end>}>}
-    |{second: <{end: <$.first.start..$.first.end>}>}> do $!\)
+  $pairs... -> \(
+    when <{first: <{start: <$.second.start..$.second.end>}>}
+    |     {second: <{start: <$.first.start..$.first.end>}>}> do $!\)
     -> ..=Count !
 end solutionPart2
 

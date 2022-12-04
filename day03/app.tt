@@ -1,26 +1,23 @@
-def alphabet: prio´1:['abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'...];
+def alphabet: 1"prio":['abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'...];
 templates toPrio
   def item: $::raw;
   $alphabet -> \[i](when <=$item> do $i!\) -> $(first)!
 end toPrio
 
 composer parseRucksackEntry
-  {<compartments>}
-  rule compartments: <'\w+'> -> [$...] -> \((left:$(1..last~/2))! (right:$(last~/2~..last)) !\)
+  {contents: [<'\w+'>...]}
 end parseRucksackEntry
 
-def input: 0:[$IN::lines -> parseRucksackEntry] -> \[i]({$..., group: $i ~/ 3}!\);
+def table: {| 0:[$IN::lines -> parseRucksackEntry] -> \[i]({$..., elf: $i, group: $i ~/ 3}!\)...
+-> \({elf: $.elf, group: $.group, by $.contents(first..last~/2)... -> {item: $, compartment: 'left'}}!
+{elf: $.elf, group: $.group, by $.contents(last~/2~..last)... -> {item: $, compartment: 'right'}}!\)|};
 
 source solutionPart1
-  $input... -> ({|$.left... -> {item:$}|} join {|$.right... -> {item:$}|})...
-  -> $.item -> toPrio -> $::raw -> ..=Sum&{of: :()} !
+  ($table({elf:,item:,compartment:}) divide&{over: $table({elf:, item:})} $table({compartment:, elf:}))... -> $.item -> toPrio -> ..=Sum&{of::()}!
 end solutionPart1
 
 source solutionPart2
-  def table: {|$input -> \[i]({elf: $i, group:$.group, by $.left... -> (item:$)} !
-    {elf: $i, group:$.group, by $.right... -> (item:$)}!\)... |};
-  ($table divide&{over:$table({group:,item:})} $table({group:,elf:}))...
-  -> $.item -> toPrio -> $::raw -> ..=Sum&{of: :()} !
+  ($table({elf:,item:,group:}) divide&{over: $table({group:, item:})} $table({group:, elf:}))... -> $.item -> toPrio -> ..=Sum&{of::()}!
 end solutionPart2
 
 '$:'part' -> SYS::property;' -> \(
