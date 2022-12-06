@@ -1,0 +1,30 @@
+def datastream: [$IN::readline ...];
+
+source solutionPart1
+  4 -> #
+  when <$datastream::last~..> do 'error'!
+  when <?($datastream($-3..$) <[<=$datastream($-3)>=1,<=$datastream($-2)>=1,<=$datastream($-1)>=1,<=$datastream($)>=1]>)> do $!
+  otherwise $+1 -> #
+end solutionPart1
+
+templates all_unique
+  def a: $;
+  $a::first -> #
+  when <=$a::last> do 1!
+  when <?($a <~[<=$a($)>=1]>)> do 0!
+  otherwise $+1 -> #
+end all_unique
+
+source solutionPart2
+  14 -> #
+  when <$datastream::last~..> do 'error'!
+  when <?($datastream($-13..$) -> all_unique <=1>)> do $!
+  otherwise $+1 -> #
+end solutionPart2
+
+'$:'part' -> SYS::property;' -> \(
+  when <='part1'|=''> do $solutionPart1 !
+  when <='part2'> do $solutionPart2 !
+  otherwise 'Unknown part $;' !
+\) -> '$;
+' -> !OUT::write

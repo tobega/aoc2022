@@ -1,0 +1,47 @@
+source parseStackState
+  composer heightLine
+    stack´1:[<crate|air>, <following>*]
+    rule following: (<=' '>) <crate|air>
+    rule crate: [(<='['>) <'.'> (<=']'>)]
+    rule air: [(<' {3}'>)]
+  end heightLine
+  composer stackLabels
+    <label>+
+    rule label: (<WS>) <stack´INT> (<WS>?)
+  end stackLabels
+  @: [];
+  $IN::readline -> heightLine -> #
+  when <[]> do ..|@: $; $IN::readline -> heightLine -> #
+  otherwise stack´1:[$.composerFailed -> stackLabels
+    -> [$@(last..first:-1;$..$)... ... ...]]!
+end parseStackState
+
+def stackState: $parseStackState;
+$IN::readline -> !VOID
+
+composer parseInstruction
+  {move: (<='move '>) <INT"crates">, from: (<=' from '>) <stack´INT>, to: (<=' to '>) <stack´INT>}
+end parseInstruction
+
+def instructions: [$IN::lines -> parseInstruction];
+
+source solutionPart1
+  @: $stackState;
+  $instructions... -> {from: $.from, to: $.to, by 1"crates"..$.move -> (move:1"crates")}
+    -> ..|@($.to):^@($.from;last);
+  '$@(first..last;last)...;'!
+end solutionPart1
+
+source solutionPart2
+  @: $stackState;
+  $instructions...
+    -> ..|@($.to):^@($.from;last-$.move::raw+1..last)...;
+  '$@(first..last;last)...;'!
+end solutionPart2
+
+'$:'part' -> SYS::property;' -> \(
+  when <='part1'|=''> do $solutionPart1 !
+  when <='part2'> do $solutionPart2 !
+  otherwise 'Unknown part $;' !
+\) -> '$;
+' -> !OUT::write
