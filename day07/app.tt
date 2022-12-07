@@ -1,0 +1,66 @@
+data command <='ls'|='cd'>
+data contents <[<´{}´ {directory:<''>}|{file:<''>}>]>
+
+composer parseLine
+  <command|directory|file>
+  rule command: (<='$:'$$'; '>) <ls|cd>
+  rule ls: (<='ls'>) {command: 'ls'}
+  rule cd: (<='cd '>) {command: 'cd', dir: <~WS>}
+  rule directory: (<='dir '>) {directory: <~WS>}
+  rule file: {size: <INT"B">, (<=' '>) file: <~WS>}
+end parseLine
+
+source parseDirectory&{path:}
+  source listDirectory
+    @: [];
+    [$IN::readline -> parseLine] -> #
+    when <´´ [](1)> do $(first) -> #
+    when <~´´ [](0)|{command: <>}> do ..|@: $; [$IN::readline -> parseLine] -> #
+    otherwise ..|@parseDirectory: (contents:$@); [$]!
+  end listDirectory
+  @: {directory: $path};
+  [$IN::readline -> parseLine] -> #
+  when <´´ [](0)?($path <~=''>)> do [$@, $]! 
+  when <´´ [](0)?($path <=''>)> do $@! 
+  when <´´ [](1)> do $(1) -> #
+  when <´´ [](2)?($path <=''>)> do $(1)! $(2) -> #
+  when <´´ [](2)> do [$(1), $(2) -> #]!
+  when <´{}´ {command: <='ls'>}> do $listDirectory -> #
+  when <´{}´ {command: <='cd'>, dir: <='..'>}> do [$@, [$IN::readline -> parseLine]]!
+  when <´{}´ {command: <='cd'>, dir: <='/'>}?($path <=''>)> do [$IN::readline -> parseLine] -> #
+  when <´{}´ {command: <='cd'>, dir: <='/'>}> do [$@, $]!
+  when <´{}´ {command: <='cd'>}> do $parseDirectory&{path: '$path;/$.dir;'} -> #
+  otherwise $!
+end parseDirectory
+
+def directories: {| $parseDirectory&{path: ''} |};
+
+templates sumSizes
+  @: 0"B";
+  $... -> \(<´´ {size: <"B">}> $!\) -> @: $@ + $.size;
+  $@!
+end sumSizes
+
+def directoryFileSizes: $directories({directory:, size: §.contents -> sumSizes});
+
+def directorySizes: {|$directoryFileSizes... -> $.directory ->
+\(def name: $;
+  {directory: $name, size: [$directoryFileSizes... -> \(<{directory: <'$name;.*'>}> $!\)] -> sumSizes} !
+\)|};
+
+source solutionPart1
+  $directorySizes... -> $.size
+    -> \(<..100000"B"> $!\) -> ..=Sum&{of: :()} !
+end solutionPart1
+
+source solutionPart2
+  def needed: 30000000"B" - (70000000"B" - (($directorySizes join {|{directory: ''}|})... -> $.size));
+  $directorySizes... -> \(<{size: <$needed..>}> $!\) -> ..=Min&{by: :(size:), select: :()} -> $.size!
+end solutionPart2
+
+'$:'part' -> SYS::property;' -> \(
+  when <='part1'|=''> do $solutionPart1 !
+  when <='part2'> do $solutionPart2 !
+  otherwise 'Unknown part $;' !
+\) -> '$;
+' -> !OUT::write
