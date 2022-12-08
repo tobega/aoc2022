@@ -16,19 +16,16 @@ source parseDirectory&{path:}
     [$IN::readline -> parseLine] -> #
     when <´´ [](1)> do $(first) -> #
     when <~´´ [](0)|{command: <>}> do ..|@: $; [$IN::readline -> parseLine] -> #
-    otherwise ..|@parseDirectory: (contents:$@); [$]!
+    otherwise {directory: $path, contents:$@}! $!
   end listDirectory
-  @: {directory: $path};
   [$IN::readline -> parseLine] -> #
-  when <´´ [](0)?($path <~=''>)> do [$@, $]! 
-  when <´´ [](0)?($path <=''>)> do $@! 
+  when <´´ [](0)?($path <~=''>)> do $! 
+  when <´´ [](0)?($path <=''>)> do !VOID 
   when <´´ [](1)> do $(1) -> #
-  when <´´ [](2)?($path <=''>)> do $(1)! $(2) -> #
-  when <´´ [](2)> do [$(1), $(2) -> #]!
   when <´{}´ {command: <='ls'>}> do $listDirectory -> #
-  when <´{}´ {command: <='cd'>, dir: <='..'>}> do [$@, [$IN::readline -> parseLine]]!
+  when <´{}´ {command: <='cd'>, dir: <='..'>}> do [$IN::readline -> parseLine]!
   when <´{}´ {command: <='cd'>, dir: <='/'>}?($path <=''>)> do [$IN::readline -> parseLine] -> #
-  when <´{}´ {command: <='cd'>, dir: <='/'>}> do [$@, $]!
+  when <´{}´ {command: <='cd'>, dir: <='/'>}> do $!
   when <´{}´ {command: <='cd'>}> do $parseDirectory&{path: '$path;/$.dir;'} -> #
   otherwise $!
 end parseDirectory
