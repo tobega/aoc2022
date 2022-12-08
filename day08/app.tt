@@ -1,0 +1,52 @@
+composer toHeight
+  <INT"h">
+end toHeight
+
+composer parseGridRow
+  [<'\d'>+ -> toHeight]
+end parseGridRow
+
+def grid: [$IN::lines -> parseGridRow];
+
+source solutionPart1
+  sink markVisible&{h:, row:, col:, dr:, dc:}
+    when <?($row <..~$grid::first>)|?($row <$grid::last~..>)|?($col <..~$grid(first)::first>)|?($col <$grid(first)::last~..>)> do
+      !VOID
+    when <?($grid($row;$col) <$h~..>)> do
+      @solutionPart1($row;$col): visible´1;
+      1 -> !markVisible&{h:$grid($row;$col), row:$row::raw + $dr::raw, col:$col::raw+$dc::raw, dr:$dr, dc:$dc}
+    otherwise
+      1 -> !markVisible&{h:$h, row:$row::raw + $dr::raw, col:$col::raw+$dc::raw, dr:$dr, dc:$dc}
+  end markVisible
+  @: [$grid... -> [$... -> visible´0]];
+  $@::first..$@::last -> !markVisible&{h: -1"h", row: $, col: $@(first)::first, dr: 0, dc: 1}
+  $@::first..$@::last -> !markVisible&{h: -1"h", row: $, col: $@(first)::last, dr: 0, dc: -1}
+  $@(first)::first..$@(first)::last -> !markVisible&{h: -1"h", col: $, row: $@::first, dc: 0, dr: 1}
+  $@(first)::first..$@(first)::last -> !markVisible&{h: -1"h", col: $, row: $@::last, dc: 0, dr: -1}
+  $@... ... -> $::raw -> ..=Sum&{of: :()}!
+end solutionPart1
+
+source solutionPart2
+  source scenicScore&{row:,col:}
+    templates view
+      @: 1;
+      [0, $... -> #]... -> ..=Sum&{of: :()}!
+      when <$grid($row;$col)..> do
+        $@! @:0;
+      otherwise $@!
+    end view
+    ($grid($row~..first:-1; $col) -> view)
+    * ($grid($row~..last; $col) -> view)
+    * ($grid($row; $col~..first:-1) -> view)
+    * ($grid($row; $col~..last) -> view)!
+  end scenicScore
+  $grid -> \[r;c]($scenicScore&{row: $r, col: $c}!\)... ...
+    -> ..=Max&{by: :(), select: :()}!
+end solutionPart2
+
+'$:'part' -> SYS::property;' -> \(
+  when <='part1'|=''> do $solutionPart1 !
+  when <='part2'> do $solutionPart2 !
+  otherwise 'Unknown part $;' !
+\) -> '$;
+' -> !OUT::write
