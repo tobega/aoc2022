@@ -1,0 +1,36 @@
+data instruction <{time: <"t">, delta: <"x">}>
+
+composer parseInstructions
+  <noop|addx>
+  rule noop: (<='noop'>) {time: 1"t", delta: 0"x"}
+  rule addx: (<='addx '>) {time: 2"t", delta: <INT"x">}
+end parseInstructions
+
+def instructions: [$IN::lines -> parseInstructions];
+
+source solutionPart1
+  @:{pending: 1"x", ticks: 1"t":[]};
+  $instructions... -> #
+  $@.ticks -> \[i](when <?($i <20"t"..220"t">)?(($i - 20"t") mod 40 <=0"t">)> do ($i * $)"ss"!\)
+    ... -> ..=Sum&{of: :()} !
+  when <> do 1"t"..$.time -> ..|@.ticks: $@.pending;
+    @.pending: $@.pending + $.delta;
+end solutionPart1
+
+source solutionPart2
+  @:{sprite: 1"x", time: 0"t"};
+  0:[$instructions... -> #] -> \[i]($i mod 40 -> \(<=0> '$#10;'!\)! $!\) -> '$...;'!
+  when <´´ instruction> do 1"t"..$.time -> #
+    @.sprite: $@.sprite + $.delta;
+  when <"t"?(($@.time mod 40)"x" <$@.sprite-1"x"..$@.sprite+1"x">)> do
+    '#'! @.time: $@.time + 1"t";
+  otherwise
+    '.'! @.time: $@.time + 1"t";
+end solutionPart2
+
+'$:'part' -> SYS::property;' -> \(
+  when <='part1'|=''> do $solutionPart1 !
+  when <='part2'> do $solutionPart2 !
+  otherwise 'Unknown part $;' !
+\) -> '$;
+' -> !OUT::write
