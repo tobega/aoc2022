@@ -1,0 +1,74 @@
+data command <='ls'|='cd'>
+data contents <[<´{}´ {directory:<''>}|{file:<''>}>]>
+
+composer parseLine
+  <command|directory|file>
+  rule command: (<='$:'$$'; '>) <ls|cd>
+  rule ls: (<='ls'>) {command: 'ls'}
+  rule cd: (<='cd '>) {command: 'cd', directory: <~WS>}
+  rule directory: (<='dir '>) {directory: <~WS>}
+  rule file: {size: <INT"B">, (<=' '>) file: <~WS>}
+end parseLine
+
+processor CommandBuffer
+  @:[$IN::readline -> parseLine];
+  source current
+    $@CommandBuffer...!
+  end current
+  source next
+    @CommandBuffer:[$IN::readline -> parseLine];
+    $current!
+  end next
+end CommandBuffer
+
+processor Directory
+  @: {directory: $, files: [], subdirs: []};
+  sink parseSession
+    def buffer: $;
+    $buffer::current -> #
+    when <´{}´ {file: <>}> do
+      ..|@Directory.files: $;
+      $buffer::next -> #
+    when <´{}´ {command: <='cd'>, directory: <='..'>}> do
+      $buffer::next -> !VOID
+    when <´{}´ {command: <='cd'>, directory: <='/'>}> do
+      $@Directory.directory -> \(<=directory´'/'> $! otherwise 'nope' -> !OUT::write\) -> $buffer::next -> #
+    when <´{}´ {command: <='cd'>}> do
+      ..|@Directory.subdirs: $.directory -> Directory;
+      $buffer::next -> $buffer -> !@Directory.subdirs(last)::parseSession
+      $buffer::current -> #
+    otherwise $buffer::next -> #
+  end parseSession
+
+  source dirSizes
+    @: 0"B";
+    def subdirSizes: [$@Directory.subdirs... -> $::dirSizes];
+    $subdirSizes(first..last;first)... -> $.size -> @: $ + $@;
+    $@Directory.files... -> $.size -> @: $ + $@;
+    [{directory: $@Directory.directory, size: $@}, $subdirSizes... ...]!
+  end dirSizes
+end Directory
+
+def root: '/' -> Directory;
+$CommandBuffer -> !root::parseSession
+
+source solutionPart1
+  $root::dirSizes... -> \(
+    when <{size: <..100000"B">}> do $ !
+  \) -> ..=Sum&{of: :(size:)} !
+end solutionPart1
+
+source solutionPart2
+  def dirSizes: $root::dirSizes;
+  def needed: 30000000"B" - (70000000"B" - $dirSizes(first).size);
+  $dirSizes... -> \(
+    when <{size: <$needed..>}> do $ !
+  \) -> ..=Min&{by: :(size:), select: :()} !
+end solutionPart2
+
+'$:'part' -> SYS::property;' -> \(
+  when <='part1'|=''> do $solutionPart1 !
+  when <='part2'> do $solutionPart2 !
+  otherwise 'Unknown part $;' !
+\) -> '$;
+' -> !OUT::write
