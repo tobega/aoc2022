@@ -1,0 +1,64 @@
+data command <='ls'|='cd'>
+data contents <[<´{}´ {directory:<''>}|{file:<''>}>]>
+
+composer parseLine
+  <command|directory|file>
+  rule command: (<='$:'$$'; '>) <ls|cd>
+  rule ls: (<='ls'>) {command: 'ls'}
+  rule cd: (<='cd '>) {command: 'cd', directory: <~WS>}
+  rule directory: (<='dir '>) {directory: <~WS>}
+  rule file: {size: <INT"B">, (<=' '>) file: <~WS>}
+end parseLine
+
+source parseSession
+  @:[{directory: '/', files: [], subdirs: [], size: 0"B"}];
+  $IN::lines -> parseLine -> #
+  {command: 'cd', directory: '/'} -> # // wrap up the stack
+  $@(first)!
+
+  when <´{}´ {file: <>}> do
+    ..|@(last).files: $;
+    @(last).size: $@(last).size + $.size;
+  when <´{}´ {command: <='cd'>, directory: <='..'>}> do
+    def subdir: ^@(last);
+    ..|@(last).subdirs: $subdir;
+    @(last).size: $@(last).size + $subdir.size;
+  when <´{}´ {command: <='cd'>, directory: <='/'>}?($@ <[](2..)>)> do
+    def subdir: ^@(last);
+    ..|@(last).subdirs: $subdir;
+    @(last).size: $@(last).size + $subdir.size;
+    $ -> #
+  when <´{}´ {command: <='cd'>}> do ..|@: {directory: $.directory, files: [], subdirs: [], size: 0"B"};
+end parseSession
+
+def directoryTree: $parseSession;
+
+source solutionPart1
+  @: 0"B";
+  $directoryTree -> #
+  $@!
+  when <{size: <..100000"B">}> do
+    @: $@ + $.size;
+    $.subdirs... -> #
+  otherwise
+    $.subdirs... -> #
+end solutionPart1
+
+source solutionPart2
+  @: 70000000"B";
+  def needed: 30000000"B" - (70000000"B" - $directoryTree.size);
+  $directoryTree -> #
+  $@!
+  when <{size: <$needed..$@>}> do
+    @: $.size;
+    $.subdirs... -> #
+  otherwise
+    $.subdirs... -> #
+end solutionPart2
+
+'$:'part' -> SYS::property;' -> \(
+  when <='part1'|=''> do $solutionPart1 !
+  when <='part2'> do $solutionPart2 !
+  otherwise 'Unknown part $;' !
+\) -> '$;
+' -> !OUT::write
