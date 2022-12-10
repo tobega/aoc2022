@@ -1,0 +1,102 @@
+processor Rope&{next:}
+  @:{head: {x: 0"x", y: 0"y"}, tail: {x: 0"x", y: 0"y"}};
+  templates checkY
+    when <=$@Rope.tail.y> do $@Rope.tail!
+    when <$@Rope.tail.y~..> do
+      @Rope.tail.y: $@Rope.tail.y + 1"y";
+      $@Rope.tail!
+    when <..~$@Rope.tail.y> do
+      @Rope.tail.y: $@Rope.tail.y - 1"y";
+      $@Rope.tail!
+  end checkY
+  templates right
+    @Rope.head.x: $@Rope.head.x + 1"x";
+    $@Rope.head.x - $@Rope.tail.x
+       -> \(<2"x"..> @Rope.tail.x: $@Rope.tail.x + 1"x"; 1!\)
+       -> $@Rope.head.y -> checkY!
+  end right
+  templates left
+    @Rope.head.x: $@Rope.head.x - 1"x";
+    $@Rope.head.x - $@Rope.tail.x
+       -> \(<..-2"x"> @Rope.tail.x: $@Rope.tail.x - 1"x"; 1!\)
+       -> $@Rope.head.y -> checkY!
+  end left
+  templates checkX
+    when <=$@Rope.tail.x> do $@Rope.tail!
+    when <$@Rope.tail.x~..> do
+      @Rope.tail.x: $@Rope.tail.x + 1"x";
+      $@Rope.tail!
+    when <..~$@Rope.tail.x> do
+      @Rope.tail.x: $@Rope.tail.x - 1"x";
+      $@Rope.tail!
+  end checkX
+  templates up
+    @Rope.head.y: $@Rope.head.y + 1"y";
+    $@Rope.head.y - $@Rope.tail.y
+       -> \(<2"y"..> @Rope.tail.y: $@Rope.tail.y + 1"y"; 1!\)
+       -> $@Rope.head.x -> checkX!
+  end up
+  templates down
+    @Rope.head.y: $@Rope.head.y - 1"y";
+    $@Rope.head.y - $@Rope.tail.y
+       -> \(<..-2"y"> @Rope.tail.y: $@Rope.tail.y - 1"y"; 1!\)
+       -> $@Rope.head.x -> checkX!
+  end down
+  templates move
+    when <{direction: <='R'>}> do 1"1"..$.steps -> right -> next!
+    when <{direction: <='L'>}> do 1"1"..$.steps -> left -> next!
+    when <{direction: <='U'>}> do 1"1"..$.steps -> up -> next!
+    when <{direction: <='D'>}> do 1"1"..$.steps -> down -> next!
+  end move
+  templates moveTo
+    @Rope.head: $;
+    $@Rope.head -> #
+    when <{x: <$@Rope.tail.x+2"x"..>}> do
+      @Rope.tail.x: $@Rope.tail.x + 1"x";
+      $.y -> checkY -> next!
+    when <{x: <..$@Rope.tail.x-2"x">}> do
+      @Rope.tail.x: $@Rope.tail.x - 1"x";
+      $.y -> checkY -> next!
+    when <{y: <$@Rope.tail.y+2"y"..>}> do
+      @Rope.tail.y: $@Rope.tail.y + 1"y";
+      $.x -> checkX -> next!
+    when <{y: <..$@Rope.tail.y-2"y">}> do
+      @Rope.tail.y: $@Rope.tail.y - 1"y";
+      $.x -> checkX -> next!
+  end moveTo
+end Rope
+
+templates passThrough
+  $!
+end passThrough
+
+processor LongRope
+  @:$Rope&{next:passThrough};
+  1~..~$ -> @: $Rope&{next: @::moveTo};
+  templates move
+    $ -> @LongRope::move!
+  end move
+end LongRope
+
+composer parseMove
+  {direction: <'.'>, (<WS>) steps: <INT"1">}
+end parseMove
+
+def moves: [$IN::lines -> parseMove];
+
+source solutionPart1
+  def rope: $Rope&{next:passThrough};
+  {|{x: 0"x", y: 0"y"}, $moves... -> rope::move|} -> $::count!
+end solutionPart1
+
+source solutionPart2
+  def rope: 10 -> LongRope;
+  {|{x: 0"x", y: 0"y"}, $moves... -> rope::move|} -> $::count!
+end solutionPart2
+
+'$:'part' -> SYS::property;' -> \(
+  when <='part1'|=''> do $solutionPart1 !
+  when <='part2'> do $solutionPart2 !
+  otherwise 'Unknown part $;' !
+\) -> '$;
+' -> !OUT::write
