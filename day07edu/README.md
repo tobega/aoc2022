@@ -1,5 +1,5 @@
 # Day 7 three ways
-Many people had trouble with the (day 7)[https://adventofcode.com/2022/day/7] problem. Paradoxically, good developers probably had more trouble. Here some of the difficulties are explained and implementations are provided in imperative, functional and OO styles, written in the [Tailspin programming language](https://github.com/tobega/tailspin-v0).
+Many people had trouble with the [day 7](https://adventofcode.com/2022/day/7) problem. Paradoxically, good developers probably had more trouble. Here some of the difficulties are explained and implementations are provided in imperative, functional and OO styles, written in the [Tailspin programming language](https://github.com/tobega/tailspin-v0).
 
 The first possible problem for good developers concerns what you can assume about the exploratory session in the file system. Is it a rational pre-order depth-first search? Or did you go back and forth a bit? Did you do `ls` more than once on a directory?
 
