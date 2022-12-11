@@ -1,0 +1,100 @@
+data mul <"1"|='old'>
+data operation <{add: <"worry">}|{mul: <mul>}>
+
+composer parseMonkeyRecords
+  <record>+
+  rule record: (<='$#10;'>?) {id: <label>, items: <items>, <operation>, test: <test>}
+  rule label: (<='Monkey '>) <INT> (<=':$#10;'>)
+  rule items: (<='  Starting items: '>) [<item>*] (<='$#10;'>)
+  rule item: (<=', '>?) <INT"worry">
+  rule operation: (<='  Operation: new = old '>) <add|mul> (<='$#10;'>)
+  rule add: (<='+ '>) add: <INT"worry">
+  rule mul: (<='* '>) mul: <INT"1"|'old'>
+  rule test: (<='  Test: divisible by '>) { mod: <INT"1"> (<='$#10;'>), <true> <false>}
+  rule true: (<='    If true: throw to monkey '>) true: <id´INT> (<='$#10;'>)
+  rule false: (<='    If false: throw to monkey '>) false: <id´INT> (<='$#10;'>)
+end parseMonkeyRecords
+
+def records: ['$IN::lines->'$;$#10;';' -> parseMonkeyRecords];
+
+processor Monkey&{operation:, test:}
+  @:{items: $, activity: 0"items"};
+  sink catch
+    ..|@Monkey.items: $;
+  end catch
+  source play
+    @Monkey.activity: $@Monkey.activity + ($@Monkey.items::length)"items";
+    def items: $@Monkey.items;
+    @Monkey.items: [];
+    $items... -> operation -> {item: $, to: $ -> #}!
+    when <?($ mod $test.mod <=0"worry">)> do $test.true !
+    otherwise $test.false!
+  end play
+  source activity
+    $@Monkey.activity!
+  end activity
+end Monkey
+
+templates addop&{addend:, then:}
+  $ + $addend -> then !
+end addop
+
+templates mulop&{multiplier:, then:}
+  $ * $multiplier -> then !
+end mulop
+
+templates sqop&{then:}
+  $ * $::raw -> then !
+end sqop
+
+templates div3
+  $ ~/ 3 !
+end div3
+
+templates monkeyBusiness&{monkeys:}
+  1..$ -> $monkeys... -> \(
+    $::play -> \(def throw: $;
+      $throw.item -> !monkeys($throw.to)::catch
+    \) -> !VOID
+  \) -> !VOID
+  @: [0"items", 0"items"];
+  $monkeys... -> $::activity -> #
+  ($@(1) * $@(2))"monkey business"!
+  when <$@(1)..> do @: [$, $@(1)];
+  when <$@(2)..> do @: [$@(1), $];
+end monkeyBusiness
+
+source solutionPart1
+  def monkeys: id´0:[$records... -> \(
+    when <´operation´ {mul: <='old'>}> do def test: $.test; $.items -> Monkey&{operation: sqop&{then: div3}, test: $test} !
+    when <´operation´ {mul: <>}> do def test: $.test; def mul: $.mul; $.items -> Monkey&{operation: mulop&{multiplier: $mul, then: div3}, test: $test} !
+    when <´operation´ {add: <>}> do def test: $.test; def add: $.add; $.items -> Monkey&{operation: addop&{addend: $add, then: div3}, test: $test} !
+  \)];
+  20 -> monkeyBusiness&{monkeys: $monkeys} !
+end solutionPart1
+
+def field: $records -> \(
+  @:1;
+  $... -> @: $@ * $.test.mod;
+  $@!
+\);
+
+templates restrict
+  $ mod $field !
+end restrict
+
+source solutionPart2
+  def monkeys: id´0:[$records... -> \(
+    when <´operation´ {mul: <='old'>}> do def test: $.test; $.items -> Monkey&{operation: sqop&{then: restrict}, test: $test} !
+    when <´operation´ {mul: <>}> do def test: $.test; def mul: $.mul; $.items -> Monkey&{operation: mulop&{multiplier: $mul, then: restrict}, test: $test} !
+    when <´operation´ {add: <>}> do def test: $.test; def add: $.add; $.items -> Monkey&{operation: addop&{addend: $add, then: restrict}, test: $test} !
+  \)];
+  10000 -> monkeyBusiness&{monkeys: $monkeys} !
+end solutionPart2
+
+'$:'part' -> SYS::property;' -> \(
+  when <='part1'|=''> do $solutionPart1 !
+  when <='part2'> do $solutionPart2 !
+  otherwise 'Unknown part $;' !
+\) -> '$;
+' -> !OUT::write
