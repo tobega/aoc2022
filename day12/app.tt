@@ -1,0 +1,54 @@
+def heights: ['abcdefghijklmnopqrstuvwxyz'... -> height´$];
+def from: ['aabcdefghijklmnopqrstuvwxyz'... -> height´$];
+templates lower
+  def to: $;
+  $heights -> \[i](<=$to> $from($i)!\)... !
+end lower
+
+composer parseMapLine
+  1"x":[<height´'.'>+]
+end parseMapLine
+
+def input: 1"y":[$IN::lines -> parseMapLine];
+def goal: $input -> \[y;x](when <=height´'E'> do {x: $x, y: $y}!\)... ...;
+
+source search&{for:, map:}
+  data map <[<[<height|"steps">* VOID]>* VOID]> local
+  @: {map: $map, result: 0"steps"};
+  @.map($goal.y;$goal.x):0"steps";
+  [{$goal..., to: height´'z'}] -> #
+  $@.result!
+  when <?($@.result <1"steps"..>)> do !VOID
+  when <[]> do
+    [$... -> #] -> #
+  when <´{}´ {steps: VOID}> do
+    def steps: $@.map($.y;$.x) + 1"steps";
+    {y: $.y - 1"y", x: $.x, from: $.to -> lower, steps: $steps} -> #
+    {y: $.y + 1"y", x: $.x, from: $.to -> lower, steps: $steps} -> #
+    {y: $.y, x: $.x - 1"x", from: $.to -> lower, steps: $steps} -> #
+    {y: $.y, x: $.x + 1"x", from: $.to -> lower, steps: $steps} -> #
+  when <{from: <´´ ..$@.map($.y;$.x)>,
+    y: <$@.map::first..$@.map::last>,
+    x: <$@.map(first)::first..$@.map(first)::last>}
+    ?($@.map($.y;$.x) <´´ =$for>)> do @.result: $.steps;
+  when <{from: <´´ ..$@.map($.y;$.x)>,
+      y: <$@.map::first..$@.map::last>,
+      x: <$@.map(first)::first..$@.map(first)::last>}> do
+    {to: $@.map($.y;$.x), x: $.x, y: $.y} !
+    @.map($.y;$.x):$.steps;
+end search
+
+source solutionPart1
+  $search&{for: height´'S' map: $input}!
+end solutionPart1
+
+source solutionPart2
+  $search&{for: height´'a', map: $input -> \[i;j](when <=height´'S'> do height´'a' ! otherwise $!\)}!
+end solutionPart2
+
+'$:'part' -> SYS::property;' -> \(
+  when <='part1'|=''> do $solutionPart1 !
+  when <='part2'> do $solutionPart2 !
+  otherwise 'Unknown part $;' !
+\) -> '$;
+' -> !OUT::write
