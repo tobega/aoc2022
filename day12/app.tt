@@ -12,7 +12,7 @@ end parseMapLine
 def input: 1"y":[$IN::lines -> parseMapLine];
 def goal: $input -> \[y;x](when <=height´'E'> do {x: $x, y: $y}!\)... ...;
 
-source search&{for:, map:}
+source search&{map:}
   data map <[<[<height|"steps">* VOID]>* VOID]> local
   @: {map: $map, result: 0"steps"};
   @.map($goal.y;$goal.x):0"steps";
@@ -27,23 +27,23 @@ source search&{for:, map:}
     {y: $.y + 1"y", x: $.x, from: $.to -> lower, steps: $steps} -> #
     {y: $.y, x: $.x - 1"x", from: $.to -> lower, steps: $steps} -> #
     {y: $.y, x: $.x + 1"x", from: $.to -> lower, steps: $steps} -> #
-  when <{from: <´´ ..$@.map($.y;$.x)>,
-    y: <$@.map::first..$@.map::last>,
+  when <{y: <$@.map::first..$@.map::last>,
     x: <$@.map(first)::first..$@.map(first)::last>}
-    ?($@.map($.y;$.x) <´´ =$for>)> do @.result: $.steps;
-  when <{from: <´´ ..$@.map($.y;$.x)>,
-      y: <$@.map::first..$@.map::last>,
-      x: <$@.map(first)::first..$@.map(first)::last>}> do
+    ?($ <{from: <´´ ..height´'a'>}>)
+    ?($@.map($.y;$.x) <´´ =height´'S'>)> do @.result: $.steps;
+  when <{y: <$@.map::first..$@.map::last>,
+      x: <$@.map(first)::first..$@.map(first)::last>}
+      ?($ <{from: <´´ ..$@.map($.y;$.x)>}>)> do
     {to: $@.map($.y;$.x), x: $.x, y: $.y} !
     @.map($.y;$.x):$.steps;
 end search
 
 source solutionPart1
-  $search&{for: height´'S' map: $input}!
+  $search&{map: $input}!
 end solutionPart1
 
 source solutionPart2
-  $search&{for: height´'a', map: $input -> \[i;j](when <=height´'S'> do height´'a' ! otherwise $!\)}!
+  $search&{map: $input -> \[i;j](when <=height´'a'> do height´'S' ! otherwise $!\)}!
 end solutionPart2
 
 '$:'part' -> SYS::property;' -> \(
