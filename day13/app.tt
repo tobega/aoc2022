@@ -1,0 +1,57 @@
+composer parsePacket
+  <list|empty>
+  rule empty: (<=''>)
+  rule list: (<='['>) [<element>*] (<=']'>)
+  rule element: (<=','>?) <list|INT>
+end parsePacket
+
+def packets: [$IN::lines -> parsePacket];
+def pairs: [1..$packets::length:2 -> [$packets($), $packets($+1)]];
+
+operator (left inOrder right)
+  0 -> #
+  when <´´ =-1|=1> do $!
+  when <?($left <..>)?($right <´´ ..~$left>)> do 1!
+  when <?($left <..>)?($right <´´ $left~..>)> do -1!
+  when <?($left <..>)?($right <´´ =$left>)> do 0!
+  when <?($left <..>)?($right <[]>)> do $ -> ([$left] inOrder $right)!
+  when <?($left <[]>)?($right <..>)> do $ -> ($left inOrder [$right])!
+  when <?($left <[](1..)>)?($right <[](0)>)> do 1!
+  when <?($left <[](0)>)?($right <[](1..)>)> do -1!
+  when <?($left <[](0)>)?($right <[](0)>)> do 0!
+  when <?($left <[]>)?($right <[]>)> do
+    ($left(first) inOrder $right(first)) -> \(
+      when <´´ =-1|=1> do $!
+      otherwise ($left(first~..last) inOrder $right(first~..last))!
+    \)!
+end inOrder
+
+source solutionPart1
+  $pairs -> \[i](<?(($(first) inOrder $(last)) <=-1>)> $i!\)... -> ..=Sum&{of: :()}!
+end solutionPart1
+
+templates quicksort
+  @: [];
+  $ -> #
+  when <[](2..)> do
+    def pivot: $(1);
+    [ [ $(2..last)... -> \(
+      when <?(($ inOrder $pivot) <..0>)> do
+        $ !
+      otherwise
+        ..|@quicksort: $;
+     \)] -> quicksort..., $pivot, $@ -> quicksort... ] !
+   otherwise
+     $ !
+end quicksort
+
+source solutionPart2
+  [[[2]], [[6]], $packets...] -> quicksort -> \[i](<´[]´ =[[2]]|=[[6]]> $i!\) -> $(first) * $(last)!
+end solutionPart2
+
+'$:'part' -> SYS::property;' -> \(
+  when <='part1'|=''> do $solutionPart1 !
+  when <='part2'> do $solutionPart2 !
+  otherwise 'Unknown part $;' !
+\) -> '$;
+' -> !OUT::write
