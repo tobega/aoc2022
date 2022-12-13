@@ -10,7 +10,6 @@ def pairs: [1..$packets::length:2 -> [$packets($), $packets($+1)]];
 
 operator (left inOrder right)
   0 -> #
-  when <´´ =-1|=1> do $!
   when <?($left <..>)?($right <´´ ..~$left>)> do 1!
   when <?($left <..>)?($right <´´ $left~..>)> do -1!
   when <?($left <..>)?($right <´´ =$left>)> do 0!
