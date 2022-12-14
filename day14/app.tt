@@ -1,0 +1,57 @@
+composer parseRockStructure
+  [<corner>+]
+  rule corner: (<=' -> '>?) {x: <INT"x">, (<=','>) y: <INT"y">}
+end parseRockStructure
+
+source rockScan
+  templates points
+    def s: $;
+    $s::first..~$s::last -> {by $s($).x..$s($+1).x -> (x:$), by $s($).y..$s($+1).y -> (y:$)} !
+    $s::first..~$s::last -> {by $s($).x..$s($+1).x:-1 -> (x:$), by $s($).y..$s($+1).y:-1 -> (y:$)} !
+  end points
+  @: 500"x":[0"y":['.']];
+  $IN::lines -> parseRockStructure -> points -> \(
+    $@rockScan::first~..$.x:-1 -> @rockScan: $:[0"y":[$@rockScan(first)... -> '.'], $@rockScan...];
+    $@rockScan::last~..$.x -> ..|@rockScan: 0"y":[$@rockScan(first)... -> '.'];
+    $@rockScan(first)::last~..$.y -> $@rockScan::first..$@rockScan::last -> ..|@rockScan($):'.';
+    $!
+  \) -> @($.x;$.y):'#';
+  ($@::first-1"x"):[0"y":[$@(first)... -> '.'], $@..., 0"y":[$@(first)... -> '.']]!
+end rockScan
+
+source solutionPart1
+  @: $rockScan;
+  {x: 500"x", y: 0"y"} -> #
+  $@... ... -> \(<='o'> 1!\) -> ..=Sum&{of: :()}!
+  when <{y: <=$@(first)::last>}> !VOID
+  when <?($@($.x; $.y+1"y") <='.'>)> do {x: $.x, y: $.y + 1"y"} -> #
+  when <?($@($.x-1"x"; $.y+1"y") <='.'>)> do {x: $.x-1"x", y: $.y + 1"y"} -> #
+  when <?($@($.x+1"x"; $.y+1"y") <='.'>)> do {x: $.x+1"x", y: $.y + 1"y"} -> #
+  otherwise @($.x;$.y): 'o'; {x: 500"x", y: 0"y"} -> #
+end solutionPart1
+
+source solutionPart2
+  @: $rockScan;
+  $@::first..$@::last -> ..|@($):'.';
+  $@::first..$@::last -> ..|@($):'#';
+  {x: 500"x", y: 0"y"} -> #
+  $@... ... -> \(<='o'> 1!\) -> ..=Sum&{of: :()}!
+  when <{x: <=$@::first>}> do
+    @: ($.x-1"x"):[0"y":[$@(first)::first..~$@(first)::last -> '.', '#'], $@...];
+    $ -> #
+  when <{x: <=$@::last>}> do
+    ..|@: 0"y":[$@(first)::first..~$@(first)::last -> '.', '#'];
+    $ -> #
+  when <?($@($.x; $.y+1"y") <='.'>)> do {x: $.x, y: $.y + 1"y"} -> #
+  when <?($@($.x-1"x"; $.y+1"y") <='.'>)> do {x: $.x-1"x", y: $.y + 1"y"} -> #
+  when <?($@($.x+1"x"; $.y+1"y") <='.'>)> do {x: $.x+1"x", y: $.y + 1"y"} -> #
+  when <{y: <=0"y">}> @($.x;$.y): 'o';
+  otherwise @($.x;$.y): 'o'; {x: 500"x", y: 0"y"} -> #
+end solutionPart2
+
+'$:'part' -> SYS::property;' -> \(
+  when <='part1'|=''> do $solutionPart1 !
+  when <='part2'> do $solutionPart2 !
+  otherwise 'Unknown part $;' !
+\) -> '$;
+' -> !OUT::write
