@@ -1,0 +1,63 @@
+composer parseData
+  { (<='Sensor at '>) sensor: <position>, (<=': closest beacon is at '>) beacon: <position>}
+  rule position: {(<='x='>) x: <INT"x">, (<=', y='>) y: <INT"y">}
+end parseData
+
+def scans: [$IN::lines -> parseData];
+
+operator (from manhattanDistance to)
+  (($from.x - $to.x)"md" -> #) + (($from.y - $to.y)"md" -> #) !
+  when <..0"md"> do -$!
+  otherwise $!
+end manhattanDistance
+
+source xrange&{target:}
+  @: [];
+  $scans... -> {$.sensor..., range: ($.sensor manhattanDistance $.beacon)}
+    -> \(when <{y: <$target-($.range)"y"..$target+($.range)"y">}> do
+      def diff: ($.range - ({x: $.x, y: $target} manhattanDistance $))"x";
+      {x1: $.x - $diff, x2: $.x + $diff}!
+    \) -> \(
+      @: $;
+      @xrange: [$@xrange... -> #];
+      ..|@xrange: $@;
+      when <{x1:<..$@.x1>, x2:<$@.x2..>}> do @: $; // includes candidate
+      when <{x1:<$@.x1..>, x2:<..$@.x2>}> do !VOID // included in candidate
+      when <{x1:<=$@.x2+1"x">}> do @:{x1: $@.x1, x2: $.x2}; // abuts end
+      when <{x2:<=$@.x1-1"x">}> do @:{x1: $.x1, x2: $@.x2}; // abuts start
+      when <{x1:<$@.x2~..>}> do $! // starts after candidate end
+      when <{x2:<..~$@.x1>}> do $! // ends before candidate start
+      when <{x1:<..$@.x1>, x2:<..$@.x2>}> do @:{x1: $.x1, x2: $@.x2}; // starts before, ends inside
+      when <{x1:<$@.x1..>, x2:<$@.x2..>}> do @:{x1: $@.x1, x2: $.x2}; // starts inside, ends after
+      otherwise 'error'!
+    \) -> !VOID
+  $@!
+end xrange
+
+source solutionPart1
+  $xrange&{target: 2000000"y"}... -> $.x2 - $.x1 -> ..=Sum&{of: :()}!
+end solutionPart1
+
+templates findx
+  @:{x1: 0"x", x2:4000000"x"};
+  $... -> #
+  $@.x1..$@.x2 !
+  when <{x1:<..$@.x1>, x2:<$@.x2..>}> do @.x2: -1"x"; // includes candidate
+  when <{x1:<$@.x1~..$@.x2>}> do @.x2: $.x1-1"x"; // covers end
+  when <{x2:<$@.x1..~$@.x2>}> do @.x1: $.x2+1"x"; // covers start
+end findx
+
+source solutionPart2
+  0"y" -> #
+  when <´´ ..4000000"y"> do
+    {y: $, $xrange&{target: $} -> findx -> (x: $)} -> #
+  when <´´ {x: VOID}> do $.y+1"y" -> #
+  otherwise ($.x * 4000000 + $.y)"f"!
+end solutionPart2
+
+'$:'part' -> SYS::property;' -> \(
+  when <='part1'|=''> do $solutionPart1 !
+  when <='part2'> do $solutionPart2 !
+  otherwise 'Unknown part $;' !
+\) -> '$;
+' -> !OUT::write
