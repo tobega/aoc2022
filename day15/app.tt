@@ -38,21 +38,46 @@ source solutionPart1
   $xrange&{target: 2000000"y"}... -> $.x2 - $.x1 -> ..=Sum&{of: :()}!
 end solutionPart1
 
-templates findx
-  @:{x1: 0"x", x2:4000000"x"};
-  $... -> #
-  $@.x1..$@.x2 !
-  when <{x1:<..$@.x1>, x2:<$@.x2..>}> do @.x2: -1"x"; // includes candidate
-  when <{x1:<$@.x1~..$@.x2>}> do @.x2: $.x1-1"x"; // covers end
-  when <{x2:<$@.x1..~$@.x2>}> do @.x1: $.x2+1"x"; // covers start
-end findx
+// x left to right, y top to bottom
+// p = x + y top-left to bottom-right, m = x - y bottom-left to top-right
+templates remove&{romb:}
+  when <{p1: <$romb.p1..>, p2: <..$romb.p2>, m1: <$romb.m1..>, m2: <..$romb.m2>}> do !VOID // obliterated
+  when <{p2: <..~$romb.p1>}|{m2: <..~$romb.m1>}|{p1: <$romb.p2~..>}|{m1: <$romb.m2~..>}> do $! // no overlap
+  when <{p1: <..~$romb.p1>}> do // slice off top left
+    {$..., p2: $romb.p1 - 1"p"} !
+    {$..., p1: $romb.p1} -> #
+  when <{p2: <$romb.p2~..>}> do // slice off bottom right
+    {$..., p1: $romb.p2 + 1"p"} !
+    {$..., p2: $romb.p2} -> #
+  when <{m1: <..~$romb.m1>}> do // slice off bottom left
+    {$..., m2: $romb.m1 - 1"m"} !
+    {$..., m1: $romb.m1} -> #
+  when <{m2: <$romb.m2~..>}> do // slice off top right
+    {$..., m1: $romb.m2 + 1"m"} !
+    {$..., m2: $romb.m2} -> #
+  otherwise error´1!
+end remove
+
+templates inBounds&{x1:, x2:, y1:, y2:}
+  <?(($.p1 - $.m2)"y" ~/ 2 <$y2~..>)> !VOID
+  <?(($.p2 - $.m1)"y" ~/ 2 <..~$y1>)> !VOID
+  <?(($.p1 + $.m1)"x" ~/ 2 <$x2~..>)> !VOID
+  <?(($.p2 + $.m2)"x" ~/ 2 <..~$x1>)> !VOID
+  otherwise $!
+end inBounds
 
 source solutionPart2
-  0"y" -> #
-  when <´´ ..4000000"y"> do
-    {y: $, $xrange&{target: $} -> findx -> (x: $)} -> #
-  when <´´ {x: VOID}> do $.y+1"y" -> #
-  otherwise ($.x * 4000000 + $.y)"f"!
+  @:[{p1: 0"p", p2:8000000"p", m1:-4000000"m", m2:4000000"m"}];
+  $scans... -> {$.sensor..., range: ($.sensor manhattanDistance $.beacon)}
+    -> {m1: ($.x - $.range - $.y)"m", m2: ($.x + $.range - $.y)"m", p1: ($.x - $.range + $.y)"p", p2: ($.x + $.range + $.y)"p"}
+    -> \(
+      def not: $;
+      @solutionPart2: [$@solutionPart2... -> remove&{romb:$not}
+        -> inBounds&{x1: 0"x", x2: 4000000"x", y1: 0"y", y2: 4000000"y"}];
+    \) -> !VOID
+    $@... -> {x1: ($.p1 + $.m1)"x" ~/ 2, x2:($.p2 + $.m2)"x" ~/ 2, y1: ($.p1 - $.m2)"y" ~/ 2, y2: ($.p2 - $.m1)"y" ~/ 2}
+      -> {by $.x1..$.x2 -> (x:$), by $.y1..$.y2 -> (y:$)}
+      -> ($.x * 4000000 + $.y)"f"!
 end solutionPart2
 
 '$:'part' -> SYS::property;' -> \(
