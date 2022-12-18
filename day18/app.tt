@@ -23,6 +23,7 @@ source solutionPart1
   $faces&{count: all} !
 end solutionPart1
 
+source solutionPart2
 def bounds: $points(collect {minx: Min&{by: :(x:), select: :(x:)}, maxx: Max&{by: :(x:), select: :(x:)},
   miny: Min&{by: :(y:), select: :(y:)}, maxy: Max&{by: :(y:), select: :(y:)},
   minz: Min&{by: :(z:), select: :(z:)}, maxz: Max&{by: :(z:), select: :(z:)}}
@@ -53,7 +54,6 @@ templates exteriors
   ($ join $steam) -> $::count !
 end exteriors
 
-source solutionPart2
   $faces&{count: exteriors} !
 end solutionPart2
 
