@@ -1,0 +1,65 @@
+composer parsePoints
+  {x: <INT"x">, (<=','>) y: <INT"y">, (<=','>) z: <INT"z">}
+end parsePoints
+
+def points: {|$IN::lines -> parsePoints|};
+
+templates all
+  $::count!
+end all
+
+source faces&{count:}
+  @: 0;
+  ($points({x: §.x-1"x", y:, z:}) notMatching $points) -> count -> @: $@ + $;
+  ($points({x: §.x+1"x", y:, z:}) notMatching $points) -> count -> @: $@ + $;
+  ($points({x:, y: §.y-1"y", z:}) notMatching $points) -> count -> @: $@ + $;
+  ($points({x:, y: §.y+1"y", z:}) notMatching $points) -> count -> @: $@ + $;
+  ($points({x:,y:, z: §.z-1"z"}) notMatching $points) -> count -> @: $@ + $;
+  ($points({x:,y:, z: §.z+1"z"}) notMatching $points) -> count -> @: $@ + $;
+  $@!
+end faces
+
+source solutionPart1
+  $faces&{count: all} !
+end solutionPart1
+
+def bounds: $points(collect {minx: Min&{by: :(x:), select: :(x:)}, maxx: Max&{by: :(x:), select: :(x:)},
+  miny: Min&{by: :(y:), select: :(y:)}, maxy: Max&{by: :(y:), select: :(y:)},
+  minz: Min&{by: :(z:), select: :(z:)}, maxz: Max&{by: :(z:), select: :(z:)}}
+  by {|{}|})... -> {minx: $.minx - 1"x", maxx: $.maxx + 1"x",
+    miny: $.miny - 1"y", maxy: $.maxy + 1"y",
+    minz: $.minz - 1"z", maxz: $.maxz + 1"z"};
+
+source fillSteam
+  @: 0;
+  {|{by [$bounds.minx, $bounds.maxx]... -> (x:$),
+    by [$bounds.miny, $bounds.maxy]... -> (y:$),
+    by [$bounds.minz, $bounds.maxz]... -> (z:$)}|} -> #
+  when <?($::count <=$@>)> do $!
+  otherwise
+    @: $::count;
+    $ -> {| $... -> \({$..., by $.x-1"x"..$.x+1"x" -> (x:$)}!
+      {$..., by $.y-1"y"..$.y+1"y" -> (y:$)}!
+      {$..., by $.z-1"z"..$.z+1"z" -> (z:$)}! \)
+    -> \(<{x: <$bounds.minx..$bounds.maxx>,
+          y: <$bounds.miny..$bounds.maxy>,
+          z: <$bounds.minz..$bounds.maxz>}> $!\)
+  |} -> ($ notMatching $points) -> #
+end fillSteam
+
+def steam: $fillSteam;
+
+templates exteriors
+  ($ join $steam) -> $::count !
+end exteriors
+
+source solutionPart2
+  $faces&{count: exteriors} !
+end solutionPart2
+
+'$:'part' -> SYS::property;' -> \(
+  when <='part1'|=''> do $solutionPart1 !
+  when <='part2'> do $solutionPart2 !
+  otherwise 'Unknown part $;' !
+\) -> '$;
+' -> !OUT::write
