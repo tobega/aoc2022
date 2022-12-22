@@ -14,16 +14,15 @@ templates mix&{file:}
   when <$file::last~..> do !VOID
   otherwise
     def i: $@.reverse($);
-    def offset: $file($) mod ($file::length - 1);
-    $i..~$i+$offset -> \(
-      when <$@mix.index::last~..> do $ mod $file::length + 1 -> #
-      when <..~$@mix.index::last> do
-        @mix.index([$, $+1]): $@mix.index([$+1, $])...;
-        @mix.reverse($@mix.index([$, $+1])): [$, $+1]...;
-      otherwise
-        |..@mix.index: [^@mix.index(first), ^@mix.index(last)]...;
-        @mix.reverse($@mix.index([0, 1])): [0, 1]...;
-        @mix.reverse($@mix.index([2..last])): 2..$@mix.index::last;
+    def offset: $file($) mod ($file::length - 1) -> \(
+      <..$file::length ~/ 2> $!
+      otherwise $ - ($file::length - 1)!
+    \);
+    [$i..~$i+$offset, $i~..$i+$offset:-1]... -> \(
+        def this: $ mod $file::length;
+        def next: ($this+1) mod $file::length;
+        @mix.index([$this, $next]): $@mix.index([$next, $this])...;
+        @mix.reverse($@mix.index([$this, $next])): [$this, $next]...;
     \) -> !VOID
     idx´($::raw + 1) -> #
 end mix
