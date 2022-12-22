@@ -1,0 +1,44 @@
+composer parseInt
+  <INT>
+end parseInt
+
+def input: idx´0:[$IN::lines -> parseInt];
+
+templates mix&{file:}
+  @: {index: 0:[$file::first..$file::last],
+    reverse: $file::first:[0..~$file::length]};
+  1..$ -> $file::first -> #
+  $file($@.index) -> \[i](<=0> $i!\)... -> $::raw
+  -> $file($@.index(($+1000) mod $file::length)) + $file($@.index(($+2000) mod $file::length)) + $file($@.index(($+3000) mod $file::length))!
+  
+  when <$file::last~..> do !VOID
+  otherwise
+    def i: $@.reverse($);
+    def offset: $file($) mod ($file::length - 1);
+    $i..~$i+$offset -> \(
+      when <$@mix.index::last~..> do $ mod $file::length + 1 -> #
+      when <..~$@mix.index::last> do
+        @mix.index([$, $+1]): $@mix.index([$+1, $])...;
+        @mix.reverse($@mix.index([$, $+1])): [$, $+1]...;
+      otherwise
+        |..@mix.index: [^@mix.index(first), ^@mix.index(last)]...;
+        @mix.reverse($@mix.index([0, 1])): [0, 1]...;
+        @mix.reverse($@mix.index([2..last])): 2..$@mix.index::last;
+    \) -> !VOID
+    idx´($::raw + 1) -> #
+end mix
+
+source solutionPart1
+  1 -> mix&{file: $input}!
+end solutionPart1
+
+source solutionPart2
+  10 -> mix&{file: $input -> \[i]($ * 811589153!\)}!
+end solutionPart2
+
+'$:'part' -> SYS::property;' -> \(
+  when <='part1'|=''> do $solutionPart1 !
+  when <='part2'> do $solutionPart2 !
+  otherwise 'Unknown part $;' !
+\) -> '$;
+' -> !OUT::write
