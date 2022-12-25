@@ -1,0 +1,53 @@
+def lines: [$IN::lines];
+
+def start: -1"x":[$lines(first)...] -> \[ x](<='.'> {x: $x, y: -1"y"}!\)...;
+def end: -1"x":[$lines(last)...] -> \[ x](<='.'> {x: $x, y: ($lines::last - 2)"y"}!\)...;
+def rocks: {|
+  -1"y":[$lines... -> -1"x":[$...]] -> \[y;x](<='#'> {x: $x, y: $y}!\)... ...,
+  {x: $start.x, y: $start.y - 1"y"}, // add a "stopper" to keep elves in the valley
+  {x: $end.x, y: $end.y + 1"y"} // add a "stopper" to keep elves in the valley
+|};
+def winds: {|
+  -1"y":[$lines... -> -1"x":[$...]] -> \[y;x](
+    <='<'> {x: $x, y: $y, dx: -1"x", dy: 0"y"} !
+    <='>'> {x: $x, y: $y, dx: 1"x", dy: 0"y"} !
+    <='^'> {x: $x, y: $y, dx: 0"x", dy: -1"y"} !
+    <='v'> {x: $x, y: $y, dx: 0"x", dy: 1"y"} !
+\)... ...|};
+def width: [$lines(first)...] -> $::length - 2;
+def height: $lines::length - 2;
+
+templates walk&{target:}
+  when <?(($.possible matching $target) -> $::count <=1>)> do
+    $.time!
+  otherwise
+    def next: {|
+      $.possible...,
+      $.possible({x: §.x + 1"x", y:})...,
+      $.possible({x: §.x - 1"x", y:})...,
+      $.possible({x:, y: §.y + 1"y"})...,
+      $.possible({x:, y: §.y - 1"y"})...
+    |};
+    def now: $.time::raw + 1;
+    { time: $now,
+      possible: (($next notMatching $winds({x: (§.x + §.dx*$now) mod $width, y: (§.y + §.dy*$now) mod $height}))
+        notMatching $rocks)
+    } -> #
+end walk
+
+source solutionPart1
+  {time: 0, possible: {|$start|}} -> walk&{target:{|$end|}} !
+end solutionPart1
+
+source solutionPart2
+  {time: 0, possible: {|$start|}} -> walk&{target:{|$end|}}
+  -> {time: $, possible: {|$end|}} -> walk&{target:{|$start|}}
+  -> {time: $, possible: {|$start|}} -> walk&{target:{|$end|}} !
+end solutionPart2
+
+'$:'part' -> SYS::property;' -> \(
+  when <='part1'|=''> do $solutionPart1 !
+  when <='part2'> do $solutionPart2 !
+  otherwise 'Unknown part $;' !
+\) -> '$;
+' -> !OUT::write
