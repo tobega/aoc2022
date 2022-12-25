@@ -1,0 +1,33 @@
+templates toSnafu
+  [$ -> #] -> '$(last..first:-1)...;'!
+  when <=0> do !VOID
+  when <?($ mod 5 <=4>)> do '-'! $ ~/ 5 + 1 -> #
+  when <?($ mod 5 <=3>)> do '='! $ ~/ 5 + 1 -> #
+  otherwise $ mod 5 ! $ ~/ 5 -> #
+end toSnafu
+
+templates fromSnafu
+  @: 0;
+  $... -> #
+  $@!
+  when <='-'> do @: $@ * 5 - 1;
+  when <='='> do @: $@ * 5 - 2;
+  when <='0'> do @: $@ * 5;
+  when <='1'> do @: $@ * 5 + 1;
+  when <='2'> do @: $@ * 5 + 2;
+end fromSnafu
+
+source solutionPart1
+  $IN::lines -> fromSnafu -> ..=Sum&{of: :()} -> toSnafu !
+end solutionPart1
+
+source solutionPart2
+  !VOID
+end solutionPart2
+
+'$:'part' -> SYS::property;' -> \(
+  when <='part1'|=''> do $solutionPart1 !
+  when <='part2'> do $solutionPart2 !
+  otherwise 'Unknown part $;' !
+\) -> '$;
+' -> !OUT::write
