@@ -1,0 +1,146 @@
+def puffs: [$IN::readline ...];
+
+templates encodeRockString
+  @:0;
+  $... -> #
+  $@::asBytes !
+  when <='#'> do @:$@ * 2 + 1;
+  when <='.'> do @:$@ * 2;
+end encodeRockString
+
+templates encodePiece
+  [[x ($... -> encodeRockString) x] -> #] -> $(last..first:-1) !
+  when <?(($ and [x 80808080x]) <=[x 00000000 x]>)> do
+    $! $::shift&{left: 1, fill: [x 00 x]} -> #
+end encodePiece
+
+def pieces: 0:[[
+  ['####'],
+  ['.#.',
+   '###',
+   '.#.'],
+  ['..#',
+   '..#',
+   '###'],
+  ['#',
+   '#',
+   '#',
+   '#'],
+  ['##',
+   '##']
+]... -> encodePiece];
+
+processor Funnel
+  @: {pipe: [x ff x], top: 1, puff: 0};
+  templates fall
+    def piece: $;
+    def zero: [x (1..$(1)::length -> [x00x]) x];
+    $(1)::length + 3 -> \(<$@Funnel.top::raw..> $ - $@Funnel.top::raw + 1 !\)
+      -> ..|@Funnel: { pipe: [x (1..$ -> [x 80 x]) ($@Funnel.pipe) x], top: $ + $@Funnel.top::raw};
+    @: $@Funnel.top::raw - 3 - $(1)::length;
+    templates wind
+      @Funnel.puff: $@Funnel.puff::raw mod $puffs::length + 1;
+      def shift: $;
+      $puffs($@Funnel.puff::raw) -> #
+      when <='>'?($shift <=$piece::last>)> do $shift!
+      when <='<'?($shift <=$piece::first>)> do $shift!
+      otherwise $ -> \(<='>'> $shift+1! <='<'> $shift-1!\)
+        -> \(
+          when <?(($piece($) and $@Funnel.pipe($@fall..~$@fall+$piece($)::length)) <~=$zero>)> do
+            $shift!
+          otherwise $ !
+        \)!
+    end wind
+    3 -> wind -> #
+    $@ -> \(<..~$@Funnel.top::raw> $!\) -> @Funnel.top: $;
+    $@Funnel.pipe::length - $@Funnel.top::raw !
+    when <?(($piece($) and $@Funnel.pipe($@~..$@+$piece($)::length)) <~=$zero>)> do
+      @Funnel.pipe: [x ($@Funnel.pipe(1..~$@))
+        ($piece($) or $@Funnel.pipe($@..~$@+$piece($)::length))
+        ($@Funnel.pipe($@+$piece($)::length..last)) x];
+    otherwise
+      @: $@ + 1;
+      $ -> wind -> #
+  end fall
+  source pipe
+    $@Funnel.pipe($@Funnel.top::raw..last)!
+  end pipe
+end Funnel
+
+test 'rockfall'
+  modify program
+    def puffs: ['<<<>'...];
+  end program
+  def funnel: $Funnel;
+
+  assert $pieces(first) -> funnel::fall <=1> 'first piece makes height 1'
+  assert $funnel::pipe <=[x bcff x]> 'pushed by wind'
+end 'rockfall'
+
+test 'example'
+  modify program
+  def puffs: ['>>><<><>><<<>><>>><<<>>><<<><<<>><>><<>>'...];
+  end program
+  def funnel: $Funnel;
+
+  assert $pieces(0 mod $pieces::length) -> funnel::fall <=1> 'example first rock height'
+  assert $funnel::pipe <=[x 9eff x]> 'first rock tower'
+
+  assert $pieces(1 mod $pieces::length) -> funnel::fall <=4> 'example first rock height'
+  assert $funnel::pipe <=[x 889c889eff x]> 'first rock tower'
+
+  assert $pieces(2 mod $pieces::length) -> funnel::fall <=6> 'example first rock height'
+  assert $funnel::pipe <=[x 9090f89c889eff x]> 'first rock tower'
+
+  assert $pieces(3 mod $pieces::length) -> funnel::fall <=7> 'example first rock height'
+  assert $funnel::pipe <=[x 849494fc9c889eff x]> 'first rock tower'
+
+  assert $pieces(4 mod $pieces::length) -> funnel::fall <=9> 'example first rock height'
+  assert $funnel::pipe <=[x 8686849494fc9c889eff x]> 'first rock tower'
+end 'example'
+
+test 'slip past'
+  modify program
+    def puffs: ['<<<<>>>>>>>>'...];
+  end program
+  def funnel: $Funnel;
+
+  assert $pieces(3 mod $pieces::length) -> funnel::fall <=4> 'vertical to the left'
+  assert $funnel::pipe <=[x c0c0c0c0ff x]> 'vertical tower'
+
+  assert $pieces(0 mod $pieces::length) -> funnel::fall <=4> 'horizontal slips by and keeps height'
+  assert $funnel::pipe <=[x c0c0c0cfff x]> 'first rock tower'
+end 'slip past'
+
+source solutionPart1
+  def funnel: $Funnel;
+  1..2022 -> ($-1) mod $pieces::length -> $pieces($) -> funnel::fall -> @: $;
+  $@!
+end solutionPart1
+
+source solutionPart2
+  def funnel: $Funnel;
+  def enoughRocks: 3 * $pieces::length * $puffs::length;
+  1..$enoughRocks -> ($-1) mod $pieces::length -> $pieces($) -> funnel::fall -> @: $;
+  // $funnel::pipe! Manually found height cycle of 2704
+  // Future idea: Take every second byte of the top 16 as fingerprint for cycle find.
+  // Uneasily working with height only, we should perhaps compare bytes pattern
+  def heightReachedAfterEnough: $@;
+  1 -> #
+  when <?(($enoughRocks + $ - 1) mod $pieces::length -> $pieces($) -> funnel::fall <=$heightReachedAfterEnough+2704>)> do
+    def rocksForCycle: $;
+    '$rocksForCycle;$#10;' -> !OUT::write
+    def rocksStillNeeded: 1000000000000 - $enoughRocks - $rocksForCycle;
+    def rockCycles: $rocksStillNeeded ~/ $rocksForCycle;
+    def remainderRocks: $rocksStillNeeded mod $rocksForCycle;
+    1..$remainderRocks -> ($-1) mod $pieces::length -> $pieces($) -> funnel::fall -> @: $;
+    $@ + $rockCycles * 2704 !
+  otherwise $ + 1 -> #
+end solutionPart2
+
+'$:'part' -> SYS::property;' -> \(
+  when <='part1'|=''> do $solutionPart1 !
+  when <='part2'> do $solutionPart2 !
+  otherwise 'Unknown part $;' !
+\) -> '$;
+' -> !OUT::write
