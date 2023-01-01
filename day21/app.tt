@@ -1,0 +1,60 @@
+composer parseYell
+  {name: <name> (<=': '>) <formula|number> }
+  rule name: <name´'[a-z]+'>
+  rule number: value: <INT"1">
+  rule formula: left: <name> (<WS>) op: <'.'> (<WS>) right: <name>
+end parseYell
+
+def monkeys: [$IN::lines -> parseYell];
+
+templates calculate&{name:}
+  when <?($.formulae::count <=0>)> do ($.values matching {|{name: $name}|})... -> $.value!
+  otherwise
+    def ready:(($.formulae join $.values({left: §.name, lval: §.value})) join $.values({right: §.name, rval: §.value}));
+    def newValues: $ready({name:, value: § -> \(
+      when <{op: <='+'>}> do $.lval + $.rval !
+      when <{op: <='-'>}> do $.lval - $.rval !
+      when <{op: <='*'>}> do $.lval * $.rval !
+      when <{op: <='/'>}> do $.lval ~/ $.rval ! // assuming no fractional parts
+    \)});
+    {formulae: ($.formulae notMatching $ready), values: ($.values union $newValues)} -> #
+end calculate
+
+source solutionPart1
+  {
+    formulae: {| $monkeys... -> \(<´{}´ {op:<>}> $!\) |},
+    values: {| $monkeys... -> \(<´{}´ {value:<>}> $!\) |}
+  } -> calculate&{name: 'root'} !
+end solutionPart1
+
+source solutionPart2
+  def formulae: {| $monkeys... -> \(<´{}´ {op:<>}> $!\) |};
+  @:[];
+  name´'humn' -> #
+  {|$@...|} -> {
+    formulae: (($ union ($formulae notMatching $({name:}))) notMatching {|{name: 'root'}|}),
+    values: {| {name: 'root', value: 0"1"},
+      $monkeys... -> \(<´{}´ {value:<>}> $!\) |} -> ($ notMatching {|{name: 'humn'}|})
+  } -> calculate&{name: 'humn'} !
+  when <=name´'root'> do @(last).op: '+'; // left or right is root, append root-value zero to emulate =
+  otherwise // assuming each term only occurs once in a formula
+    ($formulae matching {|{left: $}|})... -> \(
+      when <{op: <='+'>}> do ..|@solutionPart2:{name: $.left, left: $.name, op: '-', right: $.right}; $.name !
+      when <{op: <='-'>}> do ..|@solutionPart2:{name: $.left, left: $.name, op: '+', right: $.right}; $.name !
+      when <{op: <='*'>}> do ..|@solutionPart2:{name: $.left, left: $.name, op: '/', right: $.right}; $.name !
+      when <{op: <='/'>}> do ..|@solutionPart2:{name: $.left, left: $.name, op: '*', right: $.right}; $.name !
+    \) -> #
+    ($formulae matching {|{right: $}|})... -> \(
+      when <{op: <='+'>}> do ..|@solutionPart2:{name: $.right, left: $.name, op: '-', right: $.left}; $.name !
+      when <{op: <='-'>}> do ..|@solutionPart2:{name: $.right, left: $.left, op: '-', right: $.name}; $.name !
+      when <{op: <='*'>}> do ..|@solutionPart2:{name: $.right, left: $.name, op: '/', right: $.left}; $.name !
+      when <{op: <='/'>}> do ..|@solutionPart2:{name: $.right, left: $.left, op: '/', right: $.name}; $.name !
+    \) -> #
+end solutionPart2
+
+'$:'part' -> SYS::property;' -> \(
+  when <='part1'|=''> do $solutionPart1 !
+  when <='part2'> do $solutionPart2 !
+  otherwise 'Unknown part $;' !
+\) -> '$;
+' -> !OUT::write
