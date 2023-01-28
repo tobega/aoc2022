@@ -17,18 +17,18 @@ let scan collector append instructions =
     | Addx v :: T -> doScan (collector |> append cycle x |> append (cycle+1) x) (cycle+2) (x+v) T
   doScan collector 1 1 instructions
 
-let sample cycle x res =
+let sample cycle x collector =
   if (cycle - 20) % 40 = 0 then
-    res + cycle * x
+    collector + cycle * x
   else
-    res
+    collector
 
 let solutionPart1 instructions =
   scan 0 sample instructions
 
-let draw cycle x res =
+let draw cycle x collector =
   let hpos = (cycle - 1) % 40
-  res
+  collector
     + if x-1 <= hpos && hpos <= x+1 then "#" else "."
     + if cycle % 40 = 0 then "\n" else ""
   
