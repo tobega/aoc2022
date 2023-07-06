@@ -1,0 +1,60 @@
+data resources <[(<"ore">:<"clay">:<"obsidian">:<"geode">) VOID]>, produces <resources>, costs <resources>
+
+composer parse_blueprint
+    { id: (<='Blueprint '>) <INT>, (<=':'>) robot_specs: [<orebot>, <claybot>, <obsidianbot>, <geodebot>] }
+    rule orebot: {produces: [1"ore", 0"clay", 0"obsidian", 0"geode"], (<=' Each ore robot costs '>) costs: [<INT"ore"> (<=' ore.'>), 0"clay", 0"obsidian", 0"geode"]}
+    rule claybot: {produces: [0"ore", 1"clay", 0"obsidian", 0"geode"], (<=' Each clay robot costs '>) costs: [<INT"ore"> (<=' ore.'>), 0"clay", 0"obsidian", 0"geode"]}
+    rule obsidianbot: {produces: [0"ore", 0"clay", 1"obsidian", 0"geode"], (<=' Each obsidian robot costs '>) costs: [<INT"ore"> (<=' ore and '>), <INT"clay"> (<=' clay.'>) , 0"obsidian", 0"geode"]}
+    rule geodebot: {produces: [0"ore", 0"clay", 0"obsidian", 1"geode"], (<=' Each geode robot costs '>) costs: [<INT"ore"> (<=' ore and '>), 0"clay", <INT"obsidian"> (<=' obsidian.'>) , 0"geode"]}
+end parse_blueprint
+
+def blueprints: [$IN::lines -> parse_blueprint];
+
+operator (a plus b)
+  [1..$a::length -> $a($) + $b($)] !
+end plus
+
+operator (a minus b)
+  [1..$a::length -> $a($) - $b($)] !
+end minus
+
+templates buildable&{resources:}
+    @: {buildable: [], not_buildable: []};
+    $... -> #
+    $@!
+    when <{costs: <[(<´´ ..$resources(1)>:<´´ ..$resources(2)>:<´´ ..$resources(3)>:<´´ ..$resources(4)>)]>}> do ..|@.buildable: $;
+    otherwise ..|@.not_buildable: $;
+end buildable
+
+templates evaluate
+    def blueprint: $;
+    templates tick
+        def current: $;
+        def options: $.build_options -> buildable&{resources: $current.resources};
+        $options.buildable ...
+            -> \(
+                def remaining: ($current.resources minus $.costs);
+                { time: $current.time + 1"min",
+                  build_options: $blueprint.robot_specs -> buildable&{resources: $remaining} -> $.not_buildable,
+                  produces: ($current.produces plus $.produces),
+                  resources: ($remaining plus $current.produces)
+                } !
+            \) !
+        { time: $current.time + 1"min",
+          build_options: $options.not_buildable,
+          produces: $current.produces,
+          resources: ($current.resources plus $current.produces)
+        } !
+    end tick
+    [{time: 0"min", build_options: $.robot_specs, produces: [1"ore", 0"clay", 0"obsidian", 0"geode"], resources: [0"ore", 0"clay", 0"obsidian", 0"geode"]}
+    -> #]... -> ..=Max&{by: :(resources:;4), select: :(resources:;4)} !
+
+    when <{time: <=24"min">}> do $!
+    otherwise $ -> tick -> #
+end evaluate
+
+//part 1
+$blueprints...
+-> $.id::raw * ($ -> evaluate)
+-> ..=Sum&{of: :()}
+-> !OUT::write
