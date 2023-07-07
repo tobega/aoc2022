@@ -8,6 +8,7 @@
             "type": "java",
             "request": "launch",
             "name": "Aoc Tailspin",
+            "vmArgs": "-Xmx4G",
             "classPaths": ["/home/tobega/bin/tailspin.jar"],
             "mainClass": "tailspin.Tailspin",
             "args": "${file} < input.txt"
