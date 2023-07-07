@@ -26,8 +26,15 @@ templates buildable&{resources:}
     otherwise ..|@.not_buildable: $;
 end buildable
 
-templates evaluate
+templates evaluate&{limit:}
+    @: 0"geode";
     def blueprint: $;
+    def max_costs: [1..4 -> \($blueprint.robot_specs(first..last; costs:; $)... -> ..=Max&{by: :(), select: :()} !\)];
+    templates worth_building&{produces:}
+      def spec: $;
+      $.produces -> \[i](<"geode"?($::raw <0~..>)
+        |?($::raw <0~..>)?($produces($i) <..~$max_costs($i)>)> 1 !\) -> \(<~[](0)> 1!\) -> $spec!
+    end worth_building
     templates tick
         def current: $;
         def options: $.build_options -> buildable&{resources: $current.resources};
@@ -35,7 +42,7 @@ templates evaluate
             -> \(
                 def remaining: ($current.resources minus $.costs);
                 { time: $current.time + 1"min",
-                  build_options: $blueprint.robot_specs -> buildable&{resources: $remaining} -> $.not_buildable,
+                  build_options: [$blueprint.robot_specs -> buildable&{resources: $remaining} -> $.not_buildable... -> worth_building&{produces: $current.produces}],
                   produces: ($current.produces plus $.produces),
                   resources: ($remaining plus $current.produces)
                 } !
@@ -46,15 +53,22 @@ templates evaluate
           resources: ($current.resources plus $current.produces)
         } !
     end tick
-    [{time: 0"min", build_options: $.robot_specs, produces: [1"ore", 0"clay", 0"obsidian", 0"geode"], resources: [0"ore", 0"clay", 0"obsidian", 0"geode"]}
-    -> #]... -> ..=Max&{by: :(resources:;4), select: :(resources:;4)} !
+    {time: 0"min", build_options: $.robot_specs, produces: [1"ore", 0"clay", 0"obsidian", 0"geode"], resources: [0"ore", 0"clay", 0"obsidian", 0"geode"]}
+    -> #
+    $@ !
 
-    when <{time: <=24"min">}> do $!
-    otherwise $ -> tick -> #
+    when <{time: <..~$limit>}> do $ -> tick -> #
+    when <?($.resources(4) <$@..>)> @: $.resources(4);
 end evaluate
 
 //part 1
-$blueprints...
--> $.id::raw * ($ -> evaluate)
--> ..=Sum&{of: :()}
+// $blueprints...
+// -> $.id::raw * ($ -> evaluate&{limit: 24"min"})
+// -> ..=Sum&{of: :()}
+// -> !OUT::write
+
+//part 2
+[$blueprints(1..3)...
+-> evaluate&{limit: 32"min"}]
+-> ($(1) * $(2) * $(3))"1"
 -> !OUT::write
